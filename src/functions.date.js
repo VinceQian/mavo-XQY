@@ -235,64 +235,35 @@ _.duration = $.extend(function (ms, terms) {
 	// TODO allow multiple units, e.g. ["days", "hours"]
 	// TODO allow combining term # and units, e.g. start: days, terms: 2
 	
-	let negativeMultiplier = ms < 0 ? -1 : 1; // a multiplier to convert result to negative if needed
-	ms = Math.abs(ms); // negative works same way as positive does, just adding negative sign in the front
+	let negativeMultiplier = ms < 0 ? -1 : 1;
+    ms = Math.abs(ms);
 
-	if (terms && isNaN(terms)) {
-		// Specific term specified
-		let unitSingular = terms != "ms" ? terms.replace(/s?$/, "") : terms;
-		let unitPlural = terms.replace(/s?$/, "s");
-
-		if (!(unitPlural in s)) {
-			throw new TypeError(`Unknown duration unit ${terms}. Please use one of ${ Object.keys(s).join(", ") }`);
-		}
-
-		let n = Math.floor(ms / s[unitPlural] / 1000);
-		let unitProperPlurality = n === 1 && unitPlural !== "ms" ? unitSingular : unitPlural;
-		return negativeMultiplier * n + " " + _.phrase.call(this, unitProperPlurality);
-	}
-	else if (ms == 0 || terms === undefined) {
-		terms = 1;
-	} else if (Array.isArray(terms)) {
-        // Handle multiple units
-        let ret = terms.map(unit => _.duration(ms, unit));
-        return ret.join(" ");
-    } else if (typeof terms === "object" && terms.start !== undefined && !isNaN(terms.terms)) {
-        // Object with start and terms properties
-        let ret = _.duration(ms, terms.start) + " " + _.duration(ms, terms.terms);
-        return ret;
-    } else if (ms == 0 || terms === undefined) {
-        terms = 1;
+    if (!units || ms === 0) {
+        units = ["milliseconds"];
     }
 
-	let timeLeft = ms;
-	let ret = [];
+    let timeLeft = ms;
+    let ret = [];
 
-	if (ms == 0) {
-		ret = ["0 ms"];
-	}
-	else {
-		let units = [...Object.keys(s).reverse(), "ms"];
+    for (let i = 0; i < units.length; i++) {
+        let unit = units[i].toLowerCase();
+        let unitPlural = unit + "s";
 
-		for (let i=0, unit; unit = units[i]; i++) {
-			// get largest value of time unit for the remaining
-			// time to account for
-			let unitMs = unit in s? s[unit] * 1000 : 1; // number of ms in 1 unit
-			let unitValue = Math.floor(timeLeft / unitMs); // quotient
-			timeLeft = timeLeft % unitMs; // remainder
+        if (!(unitPlural in s)) {
+            throw new TypeError(`Unknown duration unit ${unit}. Please use one of ${Object.keys(s).join(", ")}`);
+        }
 
-			if (unitValue > 0 && ret.length < terms) {
-				let unitProperPlurality = unitValue === 1 && unit !== "ms" ? unit.slice(0, -1) : unit;
-				ret.push(negativeMultiplier * unitValue + " " + _.phrase.call(this, unitProperPlurality));
-			}
-			else if (ret.length > 0) {
-				// Discard any further terms to avoid non-continous terms like e.g. "1 month, 10 ms"
-				break;
-			}
-		}
-	}
+        let unitMs = s[unitPlural] * 1000;
+        let unitValue = Math.floor(timeLeft / unitMs);
+        timeLeft = timeLeft % unitMs;
 
-	return arguments.length === 1 ? ret[0] : ret;
+        if (unitValue > 0) {
+            let unitProperPlurality = unitValue === 1 && unit !== "milliseconds" ? unit : unitPlural;
+            ret.push(negativeMultiplier * unitValue + " " + _.phrase.call(this, unitProperPlurality));
+        }
+    }
+
+    return arguments.length === 1 ? ret[0] : ret;
 }, {
 	needsContext: true,
 	multiValued: true
