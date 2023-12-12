@@ -253,7 +253,17 @@ _.duration = $.extend(function (ms, terms) {
 	}
 	else if (ms == 0 || terms === undefined) {
 		terms = 1;
-	}
+	} else if (Array.isArray(terms)) {
+        // Handle multiple units
+        let ret = terms.map(unit => _.duration(ms, unit));
+        return ret.join(" ");
+    } else if (typeof terms === "object" && terms.start !== undefined && !isNaN(terms.terms)) {
+        // Object with start and terms properties
+        let ret = _.duration(ms, terms.start) + " " + _.duration(ms, terms.terms);
+        return ret;
+    } else if (ms == 0 || terms === undefined) {
+        terms = 1;
+    }
 
 	let timeLeft = ms;
 	let ret = [];
